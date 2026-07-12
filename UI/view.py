@@ -28,6 +28,7 @@ class View(ft.UserControl):
         self._ddrating2 = ft.Dropdown(label="Voto", hint_text="Rating")
 
 
+
         self._controller.fillDDsRating()
         self._btnCreaGrafo = ft.ElevatedButton(text="Crea Grafo", on_click=self._controller.handleCreaGrafo)
 
