@@ -1,0 +1,73 @@
+
+2026-06-29-C: source di partenza,
+              N inserito dall'utente,
+              gli altri devono essere adiacenti,
+               cercare la slz che massimizza.. --> caso 3
+
+2026-06-29-B: source di partenza,
+              N fornito dall'utente,
+              ogni album appartiene ad una componente diversa,
+              trovare la slz che massimizza.. --> caso 2
+                visualizzare la lista
+
+2026-06-29-A: source di partenza,
+                cercare cammino semplice di lunghezza max,
+                lungo il cammino il numero decresce,
+                visualizzare lista ordinata.. --> caso 1
+
+2026-05-26-Simulazione2: individuare il percorso più lungo senza sorgente,
+                trovare cammino semplice di lungh max,
+                ogni nodo decresce man mano --> caso 1
+
+2026-05-19-Simulazione1: source di partenza,
+                    cerca percorso + lungo,
+                    archi crescente --> caso 1
+
+2026-01-12: K fornito dall'utente,
+                ciascuno nodo appartiene ad una componente distinta,
+                minimizzare la differenza di età.   ---> caso 2
+                Stampare la lista di K costruttori selezionati, lo scarto di età in giorni, il costruttore
+                con il veterano più giovane e quello con il veterano più vecchio
+
+2025-11-10: Calcolare percorso di peso max con source,
+            peso decrescente  --> caso 1
+            Un vertice può entrare una sola volta == cammino semplice
+
+2025-09-15-A: K fornito dall'utente,
+              minimizzare range di età
+              ciascuno fa parte di una componente distinta  --> caso 2
+
+2025-07-10-A/B: source di partenza, E NODO DI ARRIVO!  --> caso 1 particolare
+              lunghezza cammino pari a lun
+              rispettare versi degli archi! (usare self.grafo.successors(ultimo) piuttosto che neighbors)
+              semplice
+              massimizzare somma pesi archi
+
+                def _ricorsione_path(self, parziale, target_end, target_len, current_weight):
+                    # 1. CONDIZIONE DI TERMINAZIONE (Lunghezza fissata)
+                    # Se ho raggiunto la lunghezza target (numero di archi = Lun, quindi nodi = Lun + 1)
+                    if len(parziale) - 1 == target_len:
+                        # Controllo se sono arrivato al nodo corretto
+                        if parziale[-1] == target_end:
+                            # Controllo se è il peso migliore
+                            if current_weight > self.best_score:
+                                self.best_score = current_weight
+                                self.best_path = list(parziale)
+                        return # Fondamentale tornare indietro
+
+                    # 2. ESPLORAZIONE
+                    ultimo = parziale[-1]
+
+                    # Se il grafo è orientato, usa .successors(), altrimenti .neighbors()
+                    for vicino in self.grafo.neighbors(ultimo):
+                        if vicino not in parziale: # Cammino semplice
+
+                            peso_arco = self.grafo[ultimo][vicino]['weight']
+
+                            # Passo ricorsivo con backtracking
+                            parziale.append(vicino)
+                            self._ricorsione_path(parziale, target_end, target_len, current_weight + peso_arco)
+                            parziale.pop()
+
+
+

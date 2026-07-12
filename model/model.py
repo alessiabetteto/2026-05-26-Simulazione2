@@ -1,3 +1,6 @@
+import copy
+
+
 class Model:
     def __init__(self):
         self._graph = nx.Graph()  # semplice e pesato
@@ -226,12 +229,26 @@ class Model:
 
         def _ricorsione_path(self, parziale):
             # 1. VALUTAZIONE SOLUZIONE E AGGIORNAMENTO BEST
-            # ESEMPIO: Cerco la lunghezza massima (cambia con la somma dei pesi se richiesto)
+
+            # 1.a --> massimizzare la lunghezza
             if len(parziale) > len(self.best_path):
-                self.best_path = list(parziale)  # FONDAMENTALE: fai una COPIA con list()!
+                self.best_path = copy.deepcopy(parziale)  # FONDAMENTALE: fai una COPIA con list()!
                 self.best_score = len(parziale)  # o calcola la somma dei pesi
 
+            # 1.b --> massimizzare il peso
+            peso_corrente = 0
+            for i in range(len(parziale) - 1):
+                u = parziale[i]
+                v = parziale[i + 1]
+                peso_corrente += self.grafo[u][v]['weight']
+
+            if peso_corrente > self.best_score:
+                self.best_score = peso_corrente
+                self.best_path = list(parziale)
+
+
             # 2. ESTRAZIONE ULTIMO NODO E RICERCA VICINI
+
             ultimo_nodo = parziale[-1]
 
             for vicino in self.grafo.neighbors(ultimo_nodo):
@@ -259,6 +276,25 @@ class Model:
                         parziale.append(vicino)
                         self._ricorsione_path(parziale)
                         parziale.pop()  # Torno indietro
+
+        # Massimizzare la Somma di Attributi (Somma dei valori dei NODI)
+        def _ricorsione2(self, parziale, peso_accumulato):
+
+            # Valutazione
+            if peso_accumulato > self.best_score:
+                self.best_score = peso_accumulato
+                self.best_path = list(parziale)
+
+            # Esplorazione
+            for vicino in self.grafo.neighbors(ultimo):
+                if vicino not in parziale:
+                    if filtro_valido:
+                        peso_arco = self.grafo[ultimo][vicino]['weight']
+
+                        # Passo ricorsivo passando il nuovo peso aggiornato
+                        parziale.append(vicino)
+                        self._ricorsione(parziale, peso_accumulato + peso_arco)
+                        parziale.pop()
 
 
     """ VARIANTE 2: Quando usarlo: Quando la traccia chiede di "selezionare un set di N elementi" che NON sono collegati 
