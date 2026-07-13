@@ -3,7 +3,7 @@ import copy
 
 class Model:
     def __init__(self):
-        self._graph = nx.Graph()  # semplice e pesato
+        self._graph = nx.Graph()  # semplice e pesato altrimenti DiGraph()
         self._actors = []
         self._idMapActors = {}
         self._bestPath = []
@@ -232,7 +232,7 @@ class Model:
 
             # 1.a --> massimizzare la lunghezza
             if len(parziale) > len(self.best_path):
-                self.best_path = copy.deepcopy(parziale)  # FONDAMENTALE: fai una COPIA con list()!
+                self.best_path = copy.deepcopy(parziale)  # FONDAMENTALE:  una COPIA !
                 self.best_score = len(parziale)  # o calcola la somma dei pesi
 
             # 1.b --> massimizzare il peso
@@ -251,7 +251,7 @@ class Model:
 
             ultimo_nodo = parziale[-1]
 
-            for vicino in self.grafo.neighbors(ultimo_nodo):
+            for vicino in self.grafo.neighbors(ultimo_nodo):  # self._graph.successors se DiGraph() !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                 if vicino not in parziale:  # Evita di ripassare sugli stessi nodi (niente cicli)
 
                     # 3. FILTRO DI VALIDITÀ DELLA TRACCIA (DA ADATTARE ALL'ESAME!)
@@ -268,8 +268,8 @@ class Model:
                             is_valid = True
 
                     # VARIANTE 1B: Vincolo sul nodo (es. età decrescente)
-                    # if vicino.eta < ultimo_nodo.eta:
-                    #     is_valid = True
+                    if vicino.eta < ultimo_nodo.eta:
+                        is_valid = True
 
                     # 4. BACKTRACKING
                     if is_valid:
@@ -297,7 +297,7 @@ class Model:
                         parziale.pop()
 
 
-    """ VARIANTE 2: Quando usarlo: Quando la traccia chiede di "selezionare un set di N elementi" che NON sono collegati 
+    """ VARIANTE 2: Quando la traccia chiede di "selezionare un set di N elementi" che NON sono collegati 
     tra loro (es. "nessuno è mai stato compagno di squadra dell'altro", "appartengono a componenti connesse diverse").
     Nota: Questo scheletro estrae prima le componenti e poi lancia la ricorsione su di esse."""
 
@@ -331,6 +331,7 @@ class Model:
             if len(parziale) == target_N:
                 # Calcolo il punteggio di questa combinazione (DA ADATTARE!)
                 # ESEMPIO: Somma dei brani
+                # se è una roba più complessa fai una funzione a parte  es. total_tracks = self._getTotalTracks(parziale) fuori dalla ricorsione
                 punteggio_corrente = sum([nodo.num_brani for nodo in parziale])
 
                 if punteggio_corrente > self.best_valore:
@@ -379,11 +380,11 @@ class Model:
         def _ricorsione_gruppo(self, parziale, target_N):
             # 1. CONDIZIONE DI TERMINAZIONE ESATTA
             if len(parziale) == target_N:
-                # Calcolo la statistica richiesta (ESEMPIO: somma attributo)
+                # Calcolo la statistica richiesta (ESEMPIO: somma attributo) che può anche essere una fz a parte
                 somma_corrente = sum([n.attributo for n in parziale])
                 if somma_corrente > self.best_somma:
                     self.best_somma = somma_corrente
-                    self.best_gruppo = list(parziale)
+                    self.best_gruppo = copy.deepcopy(parziale)
                 return
 
             # 2. ESPLORAZIONE: Raccolgo i vicini validi di TUTTI i nodi in 'parziale'

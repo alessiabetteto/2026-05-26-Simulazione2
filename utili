@@ -1,30 +1,30 @@
 
-2026-06-29-C: source di partenza,
-              N inserito dall'utente,
-              gli altri devono essere adiacenti,
+2026-06-29-C: source ,
+              N ,
+               adiacenti,
                cercare la slz che massimizza.. --> caso 3
 
-2026-06-29-B: source di partenza,
-              N fornito dall'utente,
-              ogni album appartiene ad una componente diversa,
+2026-06-29-B: source ,
+              N ,
+              ogni ** ad una componente diversa,
               trovare la slz che massimizza.. --> caso 2
                 visualizzare la lista
 
-2026-06-29-A: source di partenza,
+2026-06-29-A: source ,
                 cercare cammino semplice di lunghezza max,
-                lungo il cammino il numero decresce,
+                 decresce,
                 visualizzare lista ordinata.. --> caso 1
 
 2026-05-26-Simulazione2: individuare il percorso più lungo senza sorgente,
                 trovare cammino semplice di lungh max,
-                ogni nodo decresce man mano --> caso 1
+                 decresce  --> caso 1
 
 2026-05-19-Simulazione1: source di partenza,
                     cerca percorso + lungo,
-                    archi crescente --> caso 1
+                    archi crescenti --> caso 1
 
 2026-01-12: K fornito dall'utente,
-                ciascuno nodo appartiene ad una componente distinta,
+                ciascuno ad una componente distinta,
                 minimizzare la differenza di età.   ---> caso 2
                 Stampare la lista di K costruttori selezionati, lo scarto di età in giorni, il costruttore
                 con il veterano più giovane e quello con il veterano più vecchio

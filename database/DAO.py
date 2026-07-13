@@ -108,17 +108,23 @@ class DAO():
 
 
 
-    """ Testo del Punto 1:
+    """ Metti che trovi degli archi che comprendono più coppie che potrebbero non 
+    essere presenti tra i nodi che hai estratto, tu getAllEdges() normalmente e poi lo gestisci su python cosi"""
+    # # Nel Model, quando crei il grafo:
+    # archi_potenziali = self.dao.get_all_edges(voto_minimo)
+    #
+    # for arco in archi_potenziali:
+    #     id1 = arco.id1
+    #     id2 = arco.id2
+    #     peso = arco.peso
+    #
+    #     # IL CONTROLLO CHE TI SALVA LA VITA:
+    #     # Aggiungi l'arco SOLO se entrambi gli attori sono già stati
+    #     # inseriti come vertici (cioè se hanno fatto film Drama)
+    #     if self.grafo.has_node(id1) and self.grafo.has_node(id2):
+    #         self.grafo.add_edge(id1, id2, weight=peso)
 
-        a. L'utente seleziona da un menù a tendina un anno di uscita (tabella movie).
-        
-        b. Premendo il pulsante "Crea grafo", l'applicazione costruisce un grafo NON orientato e pesato. 
-        I vertici sono tutti i registi (tabella names unita a director_mapping) che hanno diretto almeno un film nell'anno selezionato dall'utente.
-        
-        c. Esiste un arco tra due registi se nel corso della loro intera carriera (non solo nell'anno selezionato) 
-        hanno diretto film appartenenti ad almeno un genere in comune.
-        
-        d. Il peso dell'arco è il numero di generi distinti che i due registi hanno in comune."""
+
 
 
 
