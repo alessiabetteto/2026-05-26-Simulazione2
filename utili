@@ -71,3 +71,30 @@
 
 
 
+
+
+
+#BFS/DFS
+bfs_edges / dfs_edges
+Restituisce gli archi della visita. Per ottenere i nodi devi estrarre v da ogni coppia (u, v), e il nodo sorgente non è incluso automaticamente.
+bfs_tree / dfs_tree
+Restituisce un albero (sottografo) che rappresenta la visita. Da lì puoi prendere sia i nodi che gli archi direttamente.
+
+#se chiede i nodi raggiungibili uso dfs/bfs_tree o edges e poi li prendo con tree.nodes()
+
+#se chuede cammino piu lungo dfs ma con ricorsione, cammino piu breve bfs
+
+
+#Se la richiesta fosse "trovami il cammino più corto da A a B" useresti:
+nx.shortest_path(self._grafo, source, target)          # cammino . usa internamente bfs per grafi non pesati
+nx.shortest_path_length(self._grafo, source, target)   # distanza
+
+# grafo non pesato → BFS internamente
+nx.shortest_path(self._grafo, source, target)
+
+# grafo pesato → Dijkstra internamente (usa il campo "weight")
+nx.shortest_path(self._grafo, source, target, weight="weight")
+
+#COMBINATION
+#si usa per i grafi completi iterando sui nodi totali
+#se invece ci sono delle condizioni allora itero sui nodi ma gia filtr
