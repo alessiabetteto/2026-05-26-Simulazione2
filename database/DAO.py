@@ -80,49 +80,111 @@ class DAO():
         conn.close()
         return results
 
-    """ a. L'utente seleziona dal corrispondente menù a tendina un genere 
-    cinematografico (tabella genre) e inserisce un intero $K$ in un TextField.
-    b. Premendo il pulsante "Crea grafo", l'applicazione costruisce un grafo NON orientato e pesato. 
-    I vertici sono tutti i film che appartengono al genere selezionato e che hanno almeno una valutazione 
-    nella tabella ratings.
-    c. Esiste un arco tra due film distinti se e solo se i due film hanno in comune almeno $K$ attori 
-    (usando la tabella role_mapping con categoria 'actor' o 'actress').
-    d. Il peso dell'arco è pari al numero esatto di attori che i due film hanno in comune."""
+    @staticmethod
+    def getAllArtists():
+        conn = DBConnect.get_connection()
 
-    # query corrispondente:
-    # select v1.id, v2.id2, count(*) as peso
-    # from (select distinct (m.id ) as id, rm.name_id  as n1
-    # from movie m, ratings r , role_mapping rm , genre g
-    # where m.id = r.movie_id and rm.movie_id = m.id
-    # and m.id = g.movie_id and g.genre = "Drama"
-    # and rm.category = "actress") as v1,
-    # ( select distinct (m.id ) as id2, rm.name_id  as n2
-    # from movie m, ratings r , role_mapping rm , genre g
-    # where m.id = r.movie_id and rm.movie_id = m.id
-    # and m.id = g.movie_id and g.genre = "Drama"
-    # and rm.category = "actress") as v2
-    # where v1.id < v2.id2 and v1.n1 = v2.n2
-    # group by v1.id, v2.id2
-    # having count(*) >= 2
-    # order by peso desc
+        results = []
+
+        cursor = conn.cursor(dictionary=True)
+        query = """select a.ArtistId, ar.Name 
+                        from track t, album a, artist ar
+                        where t.AlbumId = a.AlbumId and a.ArtistId = ar.ArtistId 
+                        group by a.ArtistId, ar.Name 
+                        order by ar.Name asc
+                        """
+
+        cursor.execute(query)
+
+        for row in cursor:
+            results.append(Album(row["AlbumId"], row["Title"], []))
+            results.append(Artist(row["ArtistId"], row["Name"], set(), set()))
+
+        cursor.close()
+        conn.close()
+        return results
+
+    @staticmethod
+    def getAllArtistsInfo(idMapA):
+        conn = DBConnect.get_connection()
+
+        results = []
+
+        cursor = conn.cursor(dictionary=True)
+        query = """select a.ArtistId, ar.Name, t.TrackId, p.PlaylistId 
+                       from track t, album a, artist ar, playlisttrack p 
+                       where t.AlbumId = a.AlbumId and a.ArtistId = ar.ArtistId and t.TrackId = p.TrackId 
+                       group by a.ArtistId, ar.Name, t.TrackId, p.PlaylistId 
+                           """
+
+        cursor.execute(query)
+
+        for row in cursor:
+
+            if row["ArtistId"] in idMapA:
+                artist = idMapA[row["ArtistId"]]
+
+                if row["TrackId"] is not None:
+                    artist.tuttiBrani.add(row["TrackId"])
+
+                if row["PlaylistId"] is not None and row["PlaylistId"]:
+                    artist.tuttePlaylist.add(row["PlaylistId"])
+
+            # results.append(Artist(row["ArtistId"], row["Name"]))
+
+        cursor.close()
+        conn.close()
+        return results
+
+    @staticmethod
+    def getAllAlbumsTracks(idMapA, idMapT):
+        conn = DBConnect.get_connection()
+
+        results = []
+
+        cursor = conn.cursor(dictionary=True)
+        query = """select distinct(t.AlbumId ), a.Title, t.TrackId 
+                        from track t, album a 
+                        where t.AlbumId = a.AlbumId 
+                            """
+
+        cursor.execute(query)
+
+        for row in cursor:
+            album = idMapA[row["AlbumId"]]
+            track = idMapT[row["TrackId"]]
+            album.tuttiBrani.append(track)
+
+        cursor.close()
+        conn.close()
+        return results
+
+    @staticmethod
+    def getDateRange():
+
+        conn = DBConnect.get_connection()
+
+        results = []
+
+        cursor = conn.cursor(dictionary=True)
+        query = "SELECT distinct (order_date) from orders o order by order_date"
+
+        cursor.execute(query)
+
+        for row in cursor:
+            results.append(row["order_date"])
+
+        first = results[0]
+        last = results[-1]
+
+        cursor.close()
+        conn.close()
+        return first, last
 
 
 
-    """ Metti che trovi degli archi che comprendono più coppie che potrebbero non 
-    essere presenti tra i nodi che hai estratto, tu getAllEdges() normalmente e poi lo gestisci su python cosi"""
-    # # Nel Model, quando crei il grafo:
-    # archi_potenziali = self.dao.get_all_edges(voto_minimo)
-    #
-    # for arco in archi_potenziali:
-    #     id1 = arco.id1
-    #     id2 = arco.id2
-    #     peso = arco.peso
-    #
-    #     # IL CONTROLLO CHE TI SALVA LA VITA:
-    #     # Aggiungi l'arco SOLO se entrambi gli attori sono già stati
-    #     # inseriti come vertici (cioè se hanno fatto film Drama)
-    #     if self.grafo.has_node(id1) and self.grafo.has_node(id2):
-    #         self.grafo.add_edge(id1, id2, weight=peso)
+
+
 
 
 

@@ -1,5 +1,7 @@
 import copy
 
+import networkx as nx
+
 
 class Model:
     def __init__(self):
@@ -19,12 +21,68 @@ class Model:
 
         for a in self._actors:
             self._idMapActors[a.id] = a
+            # se l'hash è una tupla:
+            # self._idMapGenes[(g.GeneID, g.Function)] = g
+
 
         self._graph.add_nodes_from(self._actors)
 
         edges = DAO.getAllEdges(rat1, rat2, self._idMapActors)
         for e in edges:
             self._graph.add_edge(e.a1, e.a2, weight=e.peso)
+
+        # quando cerchi all'interno delle liste delle classi e non deve esistere già l'arco
+        for a1 in self._allAlbums:
+            for a2 in self._allAlbums:
+                if a1 != a2:
+                    for t1 in a1.tuttiBrani:
+                        for t2 in a2.tuttiBrani:
+                            if t1 != t2 and t2.GenreId == t1.GenreId and not self._graph.has_edge(a1,
+                                                                                                  a2) and not self._graph.has_edge(
+                                    a2, a1):
+                                self._graph.add_edge(a1, a2)
+
+        # altro metodo per creare gli archi
+        for c1 in self._circuiti:
+            for c2 in self._circuiti:
+                # Confrontando gli ID, valuterai (1, 2) perché 1 < 2,
+                # ma non valuterai (2, 1) perché 2 non è minore di 1!
+                # Questo elimina sia i doppioni che i nodi con se stessi.
+                if c1.circuitId < c2.circuitId:
+
+                    if len(c1.results) > 0 and len(c2.results) > 0:
+                        peso_totale = piloti_validi_per_circuito[c1.circuitId] + piloti_validi_per_circuito[
+                            c2.circuitId]
+                        self._graph.add_edge(c1, c2, weight=peso_totale)
+
+
+        # altro modo per creare gli archi:
+        for i in range(0, len(self._allConstructors)):
+            for j in range(i + 1, len(self._allConstructors)):
+                nodo1 = self._allConstructors[i]
+                nodo2 = self._allConstructors[j]
+
+                # Basterà verificare che entrambi abbiano il dizionario non vuoto
+                # (significa che hanno corso nel range)
+                if len(nodo1.risultati) > 0 and len(nodo2.risultati) > 0:
+
+                    peso1 = 0
+                    for anno1 in nodo1.risultati:
+                        for pilota1 in nodo1.risultati[anno1]:
+                            # Trasformo in stringa per catturare None, \N e NULL
+                            pos1_str = str(pilota1.position).strip().upper()
+                            if pos1_str not in ["NULL", "\\N", "NONE", ""]:
+                                peso1 += 1
+
+                    peso2 = 0
+                    for anno2 in nodo2.risultati:
+                        for pilota2 in nodo2.risultati[anno2]:
+                            # Stesso controllo per il secondo team
+                            pos2_str = str(pilota2.position).strip().upper()
+                            if pos2_str not in ["NULL", "\\N", "NONE", ""]:
+                                peso2 += 1
+
+                    self._graph.add_edge(nodo1, nodo2, weight=peso1 + peso2)
 
 
     def getGraphDetails(self):
@@ -54,6 +112,23 @@ class Model:
 
         return self._bestArtista, self._maxInfluenza
 
+    #oppure se vuoi una lista
+    def getTop5ProdottiPiuVenduti(self):
+
+        lista = []
+
+        for u in self._graph.nodes:
+            # Chiediamo a networkx di calcolare la somma dei pesi
+            peso_uscenti = self._graph.out_degree(u, weight='weight')
+            peso_entranti = self._graph.in_degree(u, weight='weight')
+
+            influenza = peso_entranti - peso_uscenti
+            lista.append((u, influenza))
+
+        lista_ordinata = sorted(lista, key=lambda x: x[1], reverse=True)[:5]
+
+        return lista_ordinata
+
 
 
 
@@ -76,14 +151,116 @@ class Model:
         # mi faccio una lista di tuple in cui il primo elemento è il nodo e il secondo il grado
         details = [(n, self._graph.degree(n)) for n in orderedNodes]
 
+
+
+        # ------------------------------------------------------------------------
+        # il programma dovrà identificare la componente connessa di dimensione maggiore, e stamparne
+        # tutti i nodi, ordinati in senso decrescente di peso minimo degli archi incidenti.
+
+        lista_nodi = []
+
+        # 1. Passo in rassegna tutti i nodi del grafo
+        for nodo in subgraph:
+
+            # Prendo tutti gli archi attaccati a questo nodo
+            # In un nx.Graph() (non orientato), .edges(nodo) ci dà gli archi incidenti
+            archi_incidenti = self._graph.edges(nodo, data=True)
+
+            # Se il nodo è isolato (non ha archi), lo salto (oppure puoi mettergli peso 0)
+            if len(archi_incidenti) > 0:
+
+                # 2. Trovo il peso minimo tra tutti questi archi
+                # Creo una lista temporanea solo con i pesi di questi archi
+                pesi = []
+                for u, v, data in archi_incidenti:
+                    pesi.append(data['weight'])
+
+                peso_minimo = min(pesi)
+
+                # Salvo nella mia lista finale una tupla (nodo, peso_minimo_trovato)
+                lista_nodi.append((nodo, peso_minimo))
+
+        # 3. Ordino la lista in senso decrescente (reverse=True) in base al peso (x[1])
+        lista_ordinata = sorted(lista_nodi, key=lambda x: x[1], reverse=True)
+
+        # --------------------------------------------------------------------------
+
+
+
+        # ---------------------------------------------------------------------------------------
+
+        # si stampino tutte le componenti connesse del grafo di dim maggiore di 1, in ordine decrescente di dimensione
+
+        # prendere tt componenti connesse
+        # La funzione nx.connected_components(self._graph) di NetworkX
+        # restituisce una lista di set (insiemi). Ogni set contiene
+        # semplicemente i nomi dei nodi che formano quella componente (es. {'G234065', 'G234073'}).
+
+        all_components = list(
+            nx.connected_components(self._graph))  # connected_components saranno una lista di nodi connessi tra di loro
+
+        # verificare che la lunghezza sia superiore a 1
+        components = [c for c in all_components if len(c) > 1]
+
+        ordinata = sorted(components, key=len, reverse=True)
+        return ordinata
+
+
+
+
+
+
+        # ----------------------------------------------------------------------------------
         return len(components), largest, details
 
 
 
+    # visualizzare artista con grado maggiore, l'artista con somma dei pesi incidenti
+    # massima e i 10 archi di peso maggiore, in ordine decrescente di peso (in caso di parità
+    # ordinare alfabeticamente per nome del primo artista e poi del secondo
+
+    def stampaInfo(self):
+
+        self._allArtists.sort(key=lambda x: x.name)
+        self._final_a = None
+        self._grado_max = 0
+        for a in self._allArtists:
+            if self._graph.degree[a] > self._grado_max:
+                self._final_a = a
+                self._grado_max = self._graph.degree[a]
+
+        a, somma = None, 0
+
+        for a1 in self._allArtists:
+            somma_pesi = 0
+            for a2 in self._allArtists:
+                if self._graph.has_edge(a1, a2):
+                    somma_pesi += self._graph[a1][a2]["weight"]
+
+            if somma_pesi > somma:
+                somma = somma_pesi
+                a = a1
+
+        # Poiché non possiamo invertire le stringhe (alfabetico) facilmente,
+        # togliamo il reverse=True e rendiamo negativo il peso. In questo modo,
+        # il numero più grande diventa il più piccolo, ottenendo un ordine decrescente naturale,
+        # mentre le stringhe manterranno il loro normale ordine alfabetico crescente.
+        # in questo modo ordiniamo in ordine decrescente il peso e crescente i nomi
+
+        archi = sorted(
+            self._graph.edges(data=True),
+            key=lambda x: (-x[2]['weight'], x[0].name, x[1].name)
+        )[:10]
+
+        return self._final_a, self._grado_max, a, somma, archi
 
 
 
-
+    """ estrarre i mesi da un formato 20.05.2025 09:00:00 or smth like that"""
+    # Estraiamo i mesi (assicurati che il formato stringa sia corretto o usa un oggetto datetime)
+    # Nota: uso split()[0] nel caso ci sia anche l'orario nella stringa del db
+    # mese_corr = datetime.strptime(str(nodo_corrente.datetime).split()[0], '%Y-%m-%d').month
+    # mese_prec = datetime.strptime(str(nodo_precedente.datetime).split()[0], '%Y-%m-%d').month
 
 
     """ estrarre solo l'anno dalla date_published in movie """
@@ -222,12 +399,29 @@ class Model:
             self.best_path = []
             self.best_score = 0.0
 
+            # SE NON TI DA IL NODO DI PARTENZA:
+            # for nodo in self._graph.nodes:
+            #     nodo_partenza = nodo
+            #     if nodo.Essential != "?":
+            #         essenzialita = nodo.Essential
+            #         parziale = [nodo_partenza]
+            #         self._ricorsione_path(parziale, essenzialita)
+            #
+            # return self.best_path, self.best_score
+
             parziale = [nodo_partenza]
 
             self._ricorsione_path(parziale)
             return self.best_path, self.best_score
 
         def _ricorsione_path(self, parziale):
+
+            # # --- 1. CALCOLO COMPONENTI CONNESSE (Regola IV dello spareggio) ---
+            # # Creiamo il sottografo con i nodi attuali per contare le componenti
+            # subg = self._graph.subgraph(parziale)
+            # num_comp = nx.number_connected_components(subg)
+
+
             # 1. VALUTAZIONE SOLUZIONE E AGGIORNAMENTO BEST
 
             # 1.a --> massimizzare la lunghezza
@@ -255,21 +449,25 @@ class Model:
                 if vicino not in parziale:  # Evita di ripassare sugli stessi nodi (niente cicli)
 
                     # 3. FILTRO DI VALIDITÀ DELLA TRACCIA (DA ADATTARE ALL'ESAME!)
-                    is_valid = False
+                    is_valid = True  # inizializza sempre a true per sicurezza, e tutti gli altri dovrebberp essere false
+                                    # anche se non sono tutti false, almeno nell'ordine true-false
+                                    # l'importante è che non ci sia un altro true dopo false!
 
-                    # VARIANTE 1A: Vincolo sull'arco (es. peso decrescente)
+                    # VARIANTE 1A: Vincolo sull'arco (es. peso crescente)
                     if len(parziale) == 1:
                         is_valid = True  # Il primo arco va sempre bene
                     else:
                         penultimo_nodo = parziale[-2]
-                        peso_vecchio = self.grafo[penultimo_nodo][ultimo_nodo]['weight']
-                        peso_nuovo = self.grafo[ultimo_nodo][vicino]['weight']
-                        if peso_nuovo < peso_vecchio:  # Regola: strettamente decrescente
-                            is_valid = True
+                        peso_vecchio = self._graph[penultimo_nodo][ultimo_nodo]['weight']
+                        peso_nuovo = self._graph[ultimo_nodo][vicino]['weight']
 
-                    # VARIANTE 1B: Vincolo sul nodo (es. età decrescente)
-                    if vicino.eta < ultimo_nodo.eta:
-                        is_valid = True
+                        # LO BLOCCO SOLO SE DECRESCE STRETTAMENTE!
+                        if peso_nuovo < peso_vecchio:
+                            is_valid = False
+
+                    # VARIANTE 1B: Vincolo sul nodo
+                    if vicino.Essential == ultimo_nodo.Essential:
+                        is_valid = False
 
                     # 4. BACKTRACKING
                     if is_valid:
@@ -295,6 +493,58 @@ class Model:
                         parziale.append(vicino)
                         self._ricorsione(parziale, peso_accumulato + peso_arco)
                         parziale.pop()
+
+
+
+
+
+    # ABBIAMO UN NODO DI PARTENZA E UNO DI ARRIVO!!!!!
+    # variante 1 ma con alcune modifiche
+    # la lunghezza sia pari a lun, rispettando i versi, somma pesi archi sia massima
+
+    def cerca_cammino(self, nodo_partenza, nodo_arrivo, lun):
+        self.best_path = []
+        self.best_score = 0
+
+        parziale = [nodo_partenza]
+
+        # passiamo il peso accumulato come parametro:
+        self._ricorsione_path(parziale, nodo_arrivo, lun, 0.0)
+        return self.best_path, self.best_score
+
+    def _ricorsione_path(self, parziale, nodo_arrivo, lunghezza_target, peso_corrente):
+
+        # 1. VALUTAZIONE SOLUZIONE E CONDIZIONE DI TERMINAZIONE
+        # Controllo se ho raggiunto la lunghezza target (lunghezza_target archi = lunghezza_target + 1 nodi)
+        if len(parziale) == lunghezza_target + 1:
+            # Controllo se l'ultimo nodo è esattamente quello di arrivo richiesto
+            if parziale[-1] == nodo_arrivo:
+                # Se il peso è maggiore del best, aggiorno!
+                if peso_corrente > self.best_score:
+                    self.best_score = peso_corrente
+                    self.best_path = list(parziale)
+            # Se sono arrivato alla lunghezza massima mi fermo a prescindere
+            # (non ha senso continuare a esplorare perché supererei la lunghezza richiesta)
+            return
+
+        # 2. ESTRAZIONE ULTIMO NODO E RICERCA VICINI
+
+        ultimo_nodo = parziale[-1]
+
+        for vicino in self._graph.successors(
+                ultimo_nodo):  # self._graph.successors se DiGraph() !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            if vicino not in parziale:  # Evita di ripassare sugli stessi nodi (niente cicli)
+
+                # 3. FILTRO DI VALIDITÀ DELLA TRACCIA (DA ADATTARE ALL'ESAME!)
+                # Calcolo il peso del nuovo arco
+                peso_arco = float(self._graph[ultimo_nodo][vicino]['weight'])
+
+                # 4. BACKTRACKING
+                parziale.append(vicino)
+                self._ricorsione_path(parziale, nodo_arrivo, lunghezza_target, peso_corrente + peso_arco)
+                parziale.pop()  # Torno indietro
+
+
 
 
     """ VARIANTE 2: Quando la traccia chiede di "selezionare un set di N elementi" che NON sono collegati 
@@ -394,10 +644,19 @@ class Model:
                 for vicino in self.grafo.neighbors(nodo_interno):
                     if vicino not in parziale:
 
-                        # 3. FILTRO SULL'ARCO (DA ADATTARE!)
-                        # ESEMPIO: Non posso usare archi di peso = 1
-                        peso_arco = self.grafo[nodo_interno][vicino]['weight']
-                        if peso_arco != 1:
+                        # 3. FILTRO SULL'ARCO (CORRETTO!)
+                        # Controllo che il 'vicino' NON abbia un arco di peso 1
+                        # con NESSUNO dei nodi attualmente dentro 'parziale'
+                        is_valido = True
+                        for nodo_in_parziale in parziale:
+                            # Se esiste un arco tra il vicino e un nodo del gruppo...
+                            if self._graph.has_edge(vicino, nodo_in_parziale):
+                                # ...e quell'arco ha peso 1, scarto il vicino!
+                                if self._graph[vicino][nodo_in_parziale]['weight'] == 1:
+                                    is_valido = False
+                                    break  # Interrompo il ciclo interno, questo vicino è da scartare
+
+                        if is_valido:
                             vicini_validi.add(vicino)
 
             # 4. BACKTRACKING
@@ -405,6 +664,44 @@ class Model:
                 parziale.append(vicino_scelto)
                 self._ricorsione_gruppo(parziale, target_N)
                 parziale.pop()
+
+
+    """ cammino depth first!!!!"""
+
+    # Tramite il pulsante “Cerca Percorso Massimo”, si visualizzi il cammino più lungo partendo da un nodo (si
+    # scelga l’algoritmo di visita del grafo più opportuno fra visita in ampiezza ed in profondità). Il nodo è
+    # selezionato dall’apposito menù a tendina.
+
+    def getCamminoPiuLungo(self, nodo_partenza):
+        # Inizializzo la lista che conterrà il percorso migliore trovato
+        self._best_cammino = []
+
+        # Faccio partire la ricorsione passandogli il nodo di partenza
+        # e un cammino parziale che contiene già il nodo di partenza
+        self._ricorsione(nodo_partenza, [nodo_partenza])
+
+        return self._best_cammino
+
+    def _ricorsione(self, nodo_corrente, cammino_parziale):
+        # 1. CONDIZIONE DI AGGIORNAMENTO
+        # Se il cammino che sto esplorando è più lungo del best che avevo salvato, lo aggiorno.
+        if len(cammino_parziale) > len(self._best_cammino):
+            self._best_cammino = copy.deepcopy(list(cammino_parziale))  # Faccio una copia della lista!
+
+        # 2. ESPLORAZIONE DEI VICINI (DFS)
+        # networkx.DiGraph.successors() ci dà tutti i nodi raggiungibili partendo da nodo_corrente
+        for vicino in self._graph.successors(nodo_corrente):
+
+            # Controllo anti-ciclo (buona pratica, anche se qui le date impediscono cicli)
+            if vicino not in cammino_parziale:
+                # Provo ad aggiungere il vicino al cammino
+                cammino_parziale.append(vicino)
+
+                # Faccio ripartire la ricorsione dal vicino
+                self._ricorsione(vicino, cammino_parziale)
+
+                # BACKTRACKING: tolgo il vicino per poter esplorare altri rami
+                cammino_parziale.pop()
 
 
 
