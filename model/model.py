@@ -129,6 +129,18 @@ class Model:
 
         return lista_ordinata
 
+    def calcolaRangeEsatto(self, parziale):
+        # Converte le stringhe in datetime
+        # date_obj = [datetime.strptime(p.dob, '%Y-%m-%d') for p in parziale]
+        # se è già un datetime:
+        date_obj = [p.dob for p in parziale]
+
+        giovane = max(date_obj)  # Chi è nato "dopo" (max) è il più giovane
+        anziano = min(date_obj)  # Chi è nato "prima" (min) è il più anziano
+
+        diff = (giovane - anziano).days  # Differenza in giorni!
+        return diff
+
 
 
 
@@ -556,6 +568,11 @@ class Model:
             self.grafo = nx.Graph()
             self.best_set = []
             self.best_valore = 0  # o float('inf') se chiede di minimizzare la differenza di età
+            # self._bestMax = None
+            # self._best_diff = float('inf')  # Uso una singola variabile per la differenza
+            # self._bestMin = None
+            # self._bestPath = []
+
 
         def cerca_sottoinsieme_disconnesso(self, target_N, nodo_partenza=None):
             self.best_set = []
